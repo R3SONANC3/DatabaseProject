@@ -1,8 +1,10 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import Home from '../App.jsx'; // Main App/Home component
+import Home from '../components/Home.jsx'; // Main App/Home component
 import NotFound from '../components/NotFound.jsx'; // Not Found component
 import Login from '../components/Login.jsx'; // Login component
+import Dashboard from '../components/Dashboard.jsx';
+import Profile from '../components/Profile.jsx';
 
 const router = createBrowserRouter([
   {
@@ -10,8 +12,15 @@ const router = createBrowserRouter([
     element: <Home />, // Home page
   },
   {
-    path: '/login', 
+    path: '/login',
     element: <Login />, // Separate Login route
+  },
+  {
+    path: '/dashboard',
+    element: <Dashboard />, // Separate Dashboard route
+  }, {
+    path: '/profile',
+    element: <Profile />
   },
   {
     path: '*',

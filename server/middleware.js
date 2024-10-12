@@ -2,7 +2,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('./config');
 
-const allowedOrigins = ["http://localhost:3000", "https://field-ex.vercel.app"];
+const allowedOrigins = ["http://localhost:3000", "https://field-ex.vercel.app", "http://localhost:5173"];
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
