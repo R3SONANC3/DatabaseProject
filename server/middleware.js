@@ -5,7 +5,8 @@ const { JWT_SECRET } = require('./config');
 const allowedOrigins = [
     "http://localhost:3000",
     "https://field-ex.vercel.app",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "https://database-project-bice.vercel.app"
 ];
 
 const corsOptions = {

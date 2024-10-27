@@ -35,7 +35,7 @@ const EmailDashboard = () => {
 
     const fetchOverviewData = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/data/analytics/overview');
+            const response = await fetch('https://databaseproject-production-6f70.up.railway.app/api/data/analytics/overview');
             const data = await response.json();
             if (data.success) {
                 setOverviewData(data.data);
@@ -52,7 +52,7 @@ const EmailDashboard = () => {
         if (!categoryId) return;
 
         try {
-            const response = await fetch(`http://localhost:8000/api/data/analytics/category/${categoryId}`);
+            const response = await fetch(`https://databaseproject-production-6f70.up.railway.app/api/data/analytics/category/${categoryId}`);
             const data = await response.json();
             if (data.success) {
                 setCategoryDetails(data.data);

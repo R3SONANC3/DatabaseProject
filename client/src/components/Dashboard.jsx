@@ -29,7 +29,7 @@ export default function Dashboard() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:8000/api/user/users');
+      const response = await axios.get('https://databaseproject-production-6f70.up.railway.app/api/user/users');
       setUsers(response.data);
       setError(null);
     } catch (err) {
@@ -42,7 +42,7 @@ export default function Dashboard() {
   const handleDelete = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await axios.delete(`http://localhost:8000/api/user/users/${userId}`);
+        await axios.delete(`https://databaseproject-production-6f70.up.railway.app/api/user/users/${userId}`);
         setUsers(users.filter(user => user.id !== userId));
       } catch (err) {
         setError('Failed to delete user. Please try again.');

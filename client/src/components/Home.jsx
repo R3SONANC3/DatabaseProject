@@ -43,7 +43,7 @@ const Home = () => {
         }
       };
 
-      const response = await axios.get('http://localhost:8000/api/data/categoryData', config);
+      const response = await axios.get('https://databaseproject-production-6f70.up.railway.app/api/data/categoryData', config);
       setEmailData(response.data);
     } catch (error) {
       handleError(error);
@@ -64,7 +64,7 @@ const Home = () => {
         }
       };
 
-      const response = await axios.get('http://localhost:8000/api/data/emailVolume', config);
+      const response = await axios.get('https://databaseproject-production-6f70.up.railway.app/api/data/emailVolume', config);
       processVolumeData(response.data);
       console.log(response.data);
       

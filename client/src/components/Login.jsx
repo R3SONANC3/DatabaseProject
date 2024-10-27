@@ -30,7 +30,7 @@ const Login = () => {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/login', {
+      const response = await axios.post('https://databaseproject-production-6f70.up.railway.app/api/auth/login', {
         email: email,
         password: password,
       });
@@ -76,7 +76,7 @@ const Login = () => {
     }
   
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/register', {
+      const response = await axios.post('https://databaseproject-production-6f70.up.railway.app/api/auth/register', {
         email: email,
         password: password,
       });
