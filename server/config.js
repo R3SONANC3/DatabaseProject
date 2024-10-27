@@ -44,8 +44,18 @@ const getConnector = () => {
   return connector;
 };
 
+async function executeQuery(sql, params) {
+  try {
+    const [results] = await connector.execute(sql, params);
+    return results;
+  } catch (error) {
+    console.error('Database error:', error);
+    throw error;
+  }
+}
 module.exports = {
   JWT_SECRET,
   initMySQL,
-  getConnector
+  getConnector,
+  executeQuery
 };

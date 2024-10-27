@@ -3,21 +3,24 @@ const cors = require('cors');
 const { initMySQL } = require('./config');
 const { corsOptions } = require('./middleware');
 const authRoutes = require('./routes/auth');
+const getData = require('./routes/data')
+const getUser = require('./routes/user')
+const morgan = require('morgan')
 
 const app = express();
 
-app.use(express.json()); // Parse JSON bodies
+app.use(express.json()); 
 
-// Handle preflight requests for all routes
 app.options("*", cors(corsOptions));
 
-// Apply CORS middleware to all routes
 app.use(cors(corsOptions));
+app.use(morgan('dev'));
 
 const API_PORT = process.env.PORT || 8000;
 
-// Use Routes
-app.use('/api/auth', authRoutes); // Authentication routes
+app.use('/api/auth', authRoutes); 
+app.use('/api/data', getData);
+app.use('/api/user', getUser)
 
 // Basic error handling middleware
 app.use((err, req, res, next) => {

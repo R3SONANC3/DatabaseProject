@@ -2,10 +2,14 @@ import React from 'react';
 import { jwtDecode } from 'jwt-decode';
 import Navbar from './Navbar';
 import { User, Mail, Calendar, MapPin, Edit2 } from 'lucide-react';
+import axios from 'axios';
 
 const Profile = () => {
   const token = sessionStorage.getItem('token');
   const user = token ? jwtDecode(token) : null;
+  const getDate = async () => {
+    const response = axios.get('/profile')
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-100">

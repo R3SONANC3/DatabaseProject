@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { X, User, Lock, Mail, ArrowRight } from 'lucide-react';
 import Navbar from './Navbar';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom';
 
-function Login() {
+const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [message, setMessage] = useState('');
-
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  const navigate = useNavigate();
 
   const toggleForm = () => {
     setIsLogin(!isLogin);
@@ -20,106 +21,202 @@ function Login() {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
-    setMessage('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isLogin && password !== confirmPassword) {
-      setMessage('Passwords do not match!');
-      return;
-    }
-
-    try {
-      const url = isLogin ? `${API_BASE_URL}/api/auth/login` : `${API_BASE_URL}/api/auth/register`;
-      const response = await axios.post(url, { email, password });
-      setMessage(response.data.message);
-
-      if (isLogin && response.data.token) {
-        sessionStorage.setItem('token', response.data.token);
-        setMessage('Login successful!');
-      } else if (!isLogin) {
-        setMessage('Registration successful! You can now log in.');
-        toggleForm();
-      }
-    } catch (error) {
-      setMessage(
-        `${isLogin ? 'Login' : 'Registration'} failed: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
+    isLogin ? handleLogin() : handleReg();
   };
 
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post('http://localhost:8000/api/auth/login', {
+        email: email,
+        password: password,
+      });
+  
+      if (response.status === 200) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: 'Login successful!',
+          confirmButtonText: 'OK',
+        });
+        sessionStorage.setItem('token', response.data.token);
+        navigate('/');
+      }
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Login failed. Incorrect Email or Password.',
+          confirmButtonText: 'Try again',
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'An unexpected error occurred. Please try again later.',
+          confirmButtonText: 'Try again',
+        });
+      }
+    }
+  };
+  
+  const handleReg = async () => {
+    if (password !== confirmPassword) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Password Mismatch',
+        text: 'Passwords do not match. Please try again.',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
+  
+    try {
+      const response = await axios.post('http://localhost:8000/api/auth/register', {
+        email: email,
+        password: password,
+      });
+  
+      if (response.status === 200) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: 'Registration successful! Please log in.',
+          confirmButtonText: 'OK',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            setIsLogin(true);
+            resetForm();
+          }
+        });
+      }
+    } catch (error) {
+      let errorMessage = 'An unexpected error occurred during registration.';
+      
+      if (error.response) {
+        switch (error.response.status) {
+          case 409:
+            errorMessage = 'This email is already registered.';
+            break;
+          case 400:
+            errorMessage = 'Invalid email or password format.';
+            break;
+          default:
+            errorMessage = error.response.data?.message || errorMessage;
+        }
+      }
+  
+      Swal.fire({
+        icon: 'error',
+        title: 'Registration Failed',
+        text: errorMessage,
+        confirmButtonText: 'Try again',
+      });
+    }
+  };
+  
+
   return (
-    <>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex flex-col">
       <Navbar />
-      <div className="w-full max-w-sm mx-auto mt-24 p-8 bg-white rounded-lg shadow-md">
-        <h1 className="text-center mb-8 text-2xl font-semibold text-gray-800">
-          {isLogin ? 'Login' : 'Register'}
-        </h1>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-6">
-            <label className="block mb-2 text-sm font-medium text-gray-700" htmlFor="email">
-              Email:
-            </label>
-            <input
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="mb-6">
-            <label className="block mb-2 text-sm font-medium text-gray-700" htmlFor="password">
-              Password:
-            </label>
-            <input
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {!isLogin && (
-            <div className="mb-6">
-              <label className="block mb-2 text-sm font-medium text-gray-700" htmlFor="confirmPassword">
-                Confirm Password:
-              </label>
-              <input
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                type="password"
-                id="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+      <div className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="bg-white shadow-2xl rounded-3xl overflow-hidden">
+            <div className="px-6 py-12 sm:px-12">
+              <div className="text-center">
+                <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                  {isLogin ? 'Welcome back!' : 'Create an account'}
+                </h2>
+                <p className="mt-3 text-sm text-gray-600">
+                  {isLogin ? "Don't have an account?" : 'Already have an account?'}
+                  <button
+                    onClick={toggleForm}
+                    className="font-medium text-indigo-600 hover:text-indigo-500 ml-1 focus:outline-none transition duration-150 ease-in-out"
+                  >
+                    {isLogin ? 'Sign up' : 'Log in'}
+                  </button>
+                </p>
+              </div>
+              <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                <div className="space-y-5">
+                  <div className="relative">
+                    <label htmlFor="email-address" className="sr-only">
+                      Email address
+                    </label>
+                    <input
+                      id="email-address"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      className="block w-full px-3 py-3 pl-10 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out"
+                      placeholder="Email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
+                  <div className="relative">
+                    <label htmlFor="password" className="sr-only">
+                      Password
+                    </label>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      className="block w-full px-3 py-3 pl-10 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  </div>
+                  {!isLogin && (
+                    <div className="relative">
+                      <label htmlFor="confirm-password" className="sr-only">
+                        Confirm Password
+                      </label>
+                      <input
+                        id="confirm-password"
+                        name="confirm-password"
+                        type="password"
+                        autoComplete="new-password"
+                        required
+                        className="block w-full px-3 py-3 pl-10 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out"
+                        placeholder="Confirm Password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                      <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <button
+                    type="submit"
+                    className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                  >
+                    <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                      <User className="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" />
+                    </span>
+                    {isLogin ? 'Sign in' : 'Sign up'}
+                    <ArrowRight className="ml-2 -mr-1 h-5 w-5" />
+                  </button>
+                </div>
+              </form>
             </div>
-          )}
-          <button
-            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md transition duration-300 ease-in-out"
-            type="submit"
-          >
-            {isLogin ? 'Login' : 'Register'}
-          </button>
-        </form>
-        {message && <p className="mt-4 text-center text-sm text-red-600">{message}</p>}
-        <p className="mt-6 text-center text-sm text-gray-600">
-          {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
-          <button
-            className="text-blue-600 font-semibold hover:underline focus:outline-none"
-            onClick={toggleForm}
-          >
-            {isLogin ? 'Register' : 'Login'}
-          </button>
-        </p>
+          </div>
+        </div>
       </div>
-    </>
+    </div>
   );
-}
+};
 
 export default Login;
