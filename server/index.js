@@ -11,9 +11,9 @@ const app = express();
 
 app.use(express.json()); 
 
+app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
-app.use(cors(corsOptions));
 app.use(morgan('dev'));
 
 const API_PORT = process.env.PORT || 8000;
