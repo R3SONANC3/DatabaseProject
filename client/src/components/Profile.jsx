@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Mail, Inbox, Send, Trash, AlertCircle } from 'lucide-react';
+import { Mail, Inbox, Send, AlertCircle, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import Navbar from './Navbar';
 
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57', '#83a6ed', '#8dd1e1', '#ff7c43'];
+const COLORS = ['#6366f1', '#22c55e', '#eab308', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b'];
 
 const TIME_FILTERS = [
   { label: 'Last Month', value: '1m' },
@@ -16,13 +16,13 @@ const TIME_FILTERS = [
   { label: 'Last 4 Years', value: '4y' }
 ];
 
-
 const Profile = () => {
   const [emailData, setEmailData] = useState([]);
   const [volumeData, setVolumeData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('1m');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -33,6 +33,7 @@ const Profile = () => {
     try {
       setLoading(true);
       setError(null);
+      setIsRefreshing(true);
 
       const token = sessionStorage.getItem('token');
       const config = {
@@ -47,6 +48,7 @@ const Profile = () => {
       handleError(error);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -64,8 +66,6 @@ const Profile = () => {
 
       const response = await axios.get('/api/data/emailVolume', config);
       processVolumeData(response.data);
-      console.log(response.data);
-      
     } catch (error) {
       handleError(error);
     }
@@ -92,7 +92,6 @@ const Profile = () => {
   
     setVolumeData(processedData);
   };
-  
 
   const handleError = (error) => {
     if (error.response?.status === 401) {
@@ -113,32 +112,99 @@ const Profile = () => {
     value: item.totalEmails
   }));
 
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+          <p className="font-semibold">{payload[0].payload.name}</p>
+          {payload.map((entry, index) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {entry.value.toLocaleString()}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-800">
-          Personal email information
-          </h1>
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
+        
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              Email Analytics Dashboard
+            </h1>
+            <p className="text-gray-600">
+              Comprehensive overview of your email activity and trends
+            </p>
+          </div>
           <button
             onClick={fetchData}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center gap-2"
+            disabled={isRefreshing}
+            className={`px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 flex items-center gap-2 shadow-md ${
+              isRefreshing ? 'opacity-75 cursor-not-allowed' : ''
+            }`}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh
+            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold">Email Volume by Category</h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <Mail className="w-8 h-8 opacity-75" />
+              <span className="text-xs font-semibold bg-white/20 px-2 py-1 rounded-full">TOTAL</span>
+            </div>
+            <h3 className="text-lg font-medium opacity-75">Total Emails</h3>
+            <p className="text-3xl font-bold mt-2">{totalEmails.toLocaleString()}</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <Inbox className="w-8 h-8 opacity-75" />
+              <span className="text-xs font-semibold bg-white/20 px-2 py-1 rounded-full">INBOX</span>
+            </div>
+            <h3 className="text-lg font-medium opacity-75">Received</h3>
+            <p className="text-3xl font-bold mt-2">{totalReceived.toLocaleString()}</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <Send className="w-8 h-8 opacity-75" />
+              <span className="text-xs font-semibold bg-white/20 px-2 py-1 rounded-full">SENT</span>
+            </div>
+            <h3 className="text-lg font-medium opacity-75">Sent</h3>
+            <p className="text-3xl font-bold mt-2">{totalSent.toLocaleString()}</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <AlertCircle className="w-8 h-8 opacity-75" />
+              <span className="text-xs font-semibold bg-white/20 px-2 py-1 rounded-full">SPAM</span>
+            </div>
+            <h3 className="text-lg font-medium opacity-75">Spam</h3>
+            <p className="text-3xl font-bold mt-2">{spamCount.toLocaleString()}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Email Volume Trends</h2>
               <select
                 value={timeFilter}
                 onChange={(e) => setTimeFilter(e.target.value)}
-                className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm"
               >
                 {TIME_FILTERS.map(filter => (
                   <option key={filter.value} value={filter.value}>
@@ -147,75 +213,54 @@ const Profile = () => {
                 ))}
               </select>
             </div>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={volumeData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="Received" fill="#82ca9d" />
-                <Bar dataKey="Sent" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-semibold mb-4">Email Distribution</h2>
-            <ResponsiveContainer width="100%" height={400}>
-              <PieChart>
-                <Pie
-                  data={pieChartData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={150}
-                  fill="#8884d8"
-                  label
-                >
-                  {pieChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <div className="bg-blue-500 text-white p-6 rounded-lg shadow-lg flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Total Emails</h3>
-              <p className="text-3xl font-bold">{totalEmails.toLocaleString()}</p>
+            <div className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={volumeData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="name" stroke="#6b7280" />
+                  <YAxis stroke="#6b7280" />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ paddingTop: "20px" }} />
+                  <Bar dataKey="Received" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Sent" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <Mail size={48} />
           </div>
 
-          <div className="bg-green-500 text-white p-6 rounded-lg shadow-lg flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Received</h3>
-              <p className="text-3xl font-bold">{totalReceived.toLocaleString()}</p>
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Email Distribution</h2>
+            <div className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={150}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={{ stroke: '#6b7280', strokeWidth: 1 }}
+                  >
+                    {pieChartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]}
+                        className="hover:opacity-80 transition-opacity duration-200"
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend
+                    layout="vertical"
+                    align="right"
+                    verticalAlign="middle"
+                    wrapperStyle={{ paddingLeft: "20px" }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-            <Inbox size={48} />
-          </div>
-
-          <div className="bg-yellow-500 text-white p-6 rounded-lg shadow-lg flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Sent</h3>
-              <p className="text-3xl font-bold">{totalSent.toLocaleString()}</p>
-            </div>
-            <Send size={48} />
-          </div>
-
-          <div className="bg-red-500 text-white p-6 rounded-lg shadow-lg flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Spam</h3>
-              <p className="text-3xl font-bold">{spamCount.toLocaleString()}</p>
-            </div>
-            <AlertCircle size={48} />
           </div>
         </div>
       </main>
