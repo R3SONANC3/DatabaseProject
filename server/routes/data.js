@@ -42,14 +42,14 @@ async function getEmailsBySenderInCategory(categoryId) {
   const sql = `
       SELECT 
         e.senderEmail,
-        COUNT(e.emailID) as emailCount,
+        COUNT(*) as emailCount,
         SUM(e.size) as totalSize,
         MIN(e.date) as firstEmail,
         MAX(e.date) as lastEmail
       FROM Emails e
       WHERE e.CategoryID = ?
       GROUP BY e.senderEmail
-      ORDER BY emailCount DESC
+      ORDER BY COUNT(*) DESC
       LIMIT 10
     `;
   return await executeQuery(sql, [categoryId]);
@@ -59,16 +59,15 @@ async function getEmailTimeAnalysis(categoryId) {
   const sql = `
       SELECT 
         DATE_FORMAT(date, '%Y-%m') as month,
-        COUNT(emailID) as emailCount,
+        COUNT(*) as emailCount,
         SUM(size) as totalSize
       FROM Emails
       WHERE CategoryID = ?
-      GROUP BY DATE_FORMAT(date, '%Y-%m')
+      GROUP BY month
       ORDER BY month DESC
     `;
   return await executeQuery(sql, [categoryId]);
 }
-
 
 router.get('/categoryData', verifyUser, (req, res) => {
   const handleStatus = async () => {
@@ -183,9 +182,11 @@ router.get('/analytics', async (req, res) => {
 router.get('/analytics/:categoryId', async (req, res) => {
   try {
     const { categoryId } = req.params;
-    const emails = await getEmailsInCategory(categoryId);
-    const senderAnalysis = await getEmailsBySenderInCategory(categoryId);
-    const timeAnalysis = await getEmailTimeAnalysis(categoryId);
+    
+    const [senderAnalysis, timeAnalysis] = await Promise.all([
+      getEmailsBySenderInCategory(categoryId),
+      getEmailTimeAnalysis(categoryId)
+    ]);
 
     res.json({
       success: true,
@@ -195,14 +196,12 @@ router.get('/analytics/:categoryId', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Analytics error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch category details'
     });
   }
 });
-
-
-
 
 module.exports = router;

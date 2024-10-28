@@ -10,6 +10,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
   const navigate = useNavigate();
 
   const toggleForm = () => {
@@ -21,6 +22,7 @@ const Login = () => {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
+    setName('');
   };
 
   const handleSubmit = async (e) => {
@@ -36,31 +38,28 @@ const Login = () => {
       });
   
       if (response.status === 200) {
+        // Store both token and user data
+        sessionStorage.setItem('token', response.data.token);
+        sessionStorage.setItem('user', JSON.stringify(response.data.user));
+        
         Swal.fire({
           icon: 'success',
           title: 'Success!',
-          text: 'Login successful!',
+          text: response.data.message,
           confirmButtonText: 'OK',
         });
-        sessionStorage.setItem('token', response.data.token);
+        
         navigate('/profile');
       }
     } catch (error) {
-      if (error.response && error.response.status === 401) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: 'Login failed. Incorrect Email or Password.',
-          confirmButtonText: 'Try again',
-        });
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: 'An unexpected error occurred. Please try again later.',
-          confirmButtonText: 'Try again',
-        });
-      }
+      const errorMessage = error.response?.data?.message || 'An unexpected error occurred. Please try again later.';
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: errorMessage,
+        confirmButtonText: 'Try again',
+      });
     }
   };
   
@@ -79,13 +78,14 @@ const Login = () => {
       const response = await axios.post('/api/auth/register', {
         email: email,
         password: password,
+        name: name,
       });
   
       if (response.status === 200) {
         Swal.fire({
           icon: 'success',
           title: 'Success!',
-          text: 'Registration successful! Please log in.',
+          text: response.data.message,
           confirmButtonText: 'OK',
         }).then((result) => {
           if (result.isConfirmed) {
@@ -95,21 +95,8 @@ const Login = () => {
         });
       }
     } catch (error) {
-      let errorMessage = 'An unexpected error occurred during registration.';
+      const errorMessage = error.response?.data?.message || 'An unexpected error occurred during registration.';
       
-      if (error.response) {
-        switch (error.response.status) {
-          case 409:
-            errorMessage = 'This email is already registered.';
-            break;
-          case 400:
-            errorMessage = 'Invalid email or password format.';
-            break;
-          default:
-            errorMessage = error.response.data?.message || errorMessage;
-        }
-      }
-  
       Swal.fire({
         icon: 'error',
         title: 'Registration Failed',
@@ -118,7 +105,6 @@ const Login = () => {
       });
     }
   };
-  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex flex-col">
@@ -143,6 +129,24 @@ const Login = () => {
               </div>
               <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                 <div className="space-y-5">
+                  {!isLogin && (
+                    <div className="relative">
+                      <label htmlFor="name" className="sr-only">
+                        Name
+                      </label>
+                      <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        required
+                        className="block w-full px-3 py-3 pl-10 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out"
+                        placeholder="Full name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                      />
+                      <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                    </div>
+                  )}
                   <div className="relative">
                     <label htmlFor="email-address" className="sr-only">
                       Email address

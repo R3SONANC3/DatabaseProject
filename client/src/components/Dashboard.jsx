@@ -15,12 +15,190 @@ import {
   X
 } from 'lucide-react';
 
+const AddUserModal = ({ isOpen, onClose, onAdd }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user'
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await onAdd(formData);
+      onClose();
+    } catch (error) {
+      console.error('Error adding user:', error);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h2 className="text-xl font-bold mb-4">Add New User</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Name</label>
+            <input
+              type="text"
+              required
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              type="email"
+              required
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <input
+              type="password"
+              required
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Role</label>
+            <select
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div className="flex justify-end space-x-2 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 hover:text-gray-700 border border-gray-300 rounded-md"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Add User
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Edit user modal component
+const EditUserModal = ({ isOpen, onClose, onEdit, user }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    role: 'user',
+    status: 'active'
+  });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name,
+        role: user.role,
+        status: user.status
+      });
+    }
+  }, [user]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await onEdit(user.id, formData);
+      onClose();
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
+  };
+
+  if (!isOpen || !user) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h2 className="text-xl font-bold mb-4">Edit User</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Name</label>
+            <input
+              type="text"
+              required
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Role</label>
+            <select
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Status</label>
+            <select
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div className="flex justify-end space-x-2 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 hover:text-gray-700 border border-gray-300 rounded-md"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Update User
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -29,7 +207,10 @@ export default function Dashboard() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/user/users');
+      const token = sessionStorage.getItem('token');
+      const response = await axios.get('/api/user/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setUsers(response.data);
       setError(null);
     } catch (err) {
@@ -39,15 +220,54 @@ export default function Dashboard() {
     }
   };
 
+  const handleAddUser = async (userData) => {
+    try {
+      console.log(userData);
+      
+      const token = sessionStorage.getItem('token');
+      await axios.post('/api/user/register', userData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchUsers();
+      setError(null);
+    } catch (err) {
+      setError('Failed to add user. Please try again.');
+      throw err;
+    }
+  };
+
+  const handleEditUser = async (userId, userData) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`/api/user/users/${userId}`, userData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchUsers();
+      setError(null);
+    } catch (err) {
+      setError('Failed to update user. Please try again.');
+      throw err;
+    }
+  };
   const handleDelete = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await axios.delete(`/api/user/users/${userId}`);
+        const token = localStorage.getItem('token');
+        await axios.delete(`/api/user/users/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setUsers(users.filter(user => user.id !== userId));
+        setError(null);
       } catch (err) {
         setError('Failed to delete user. Please try again.');
       }
     }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    window.location.href = '/login';
   };
 
   const filteredUsers = users.filter(user =>
@@ -64,7 +284,7 @@ export default function Dashboard() {
 
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
-          <li>
+            <li>
               <a href="/dashboard" className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 text-gray-700">
                 <Users className="h-5 w-5" />
                 <span>Users</span>
@@ -76,11 +296,20 @@ export default function Dashboard() {
                 <span>Home</span>
               </a>
             </li>
+            <li>
+              <a href="/settings" className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 text-gray-700">
+                <Settings className="h-5 w-5" />
+                <span>Settings</span>
+              </a>
+            </li>
           </ul>
         </nav>
 
         <div className="p-4 border-t">
-          <button className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-red-50 text-red-600">
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-3 w-full p-3 rounded-lg hover:bg-red-50 text-red-600"
+          >
             <LogOut className="h-5 w-5" />
             <span>Logout</span>
           </button>
@@ -141,7 +370,10 @@ export default function Dashboard() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <button className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 transition-colors">
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 transition-colors"
+              >
                 <UserPlus className="h-4 w-4" />
                 Add New User
               </button>
@@ -180,7 +412,13 @@ export default function Dashboard() {
                       )}
                     </div>
                     <div className="pt-4 flex justify-end space-x-2">
-                      <button className="p-2 text-blue-600 hover:text-blue-700 rounded-lg border border-gray-200 hover:bg-gray-50">
+                      <button
+                        className="p-2 text-blue-600 hover:text-blue-700 rounded-lg border border-gray-200 hover:bg-gray-50"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setIsEditModalOpen(true);
+                        }}
+                      >
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button
@@ -206,6 +444,22 @@ export default function Dashboard() {
               </p>
             </div>
           )}
+
+          {/* Modals */}
+          <AddUserModal
+            isOpen={isAddModalOpen}
+            onClose={() => setIsAddModalOpen(false)}
+            onAdd={handleAddUser}
+          />
+          <EditUserModal
+            isOpen={isEditModalOpen}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setSelectedUser(null);
+            }}
+            onEdit={handleEditUser}
+            user={selectedUser}
+          />
         </div>
       </div>
     </div>
