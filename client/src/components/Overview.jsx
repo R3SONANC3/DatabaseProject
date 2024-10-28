@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Select } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { RefreshCcw, Mail, HardDrive, Users, TrendingUp } from 'lucide-react';
 
 const EmailDashboard = () => {
     const [overviewData, setOverviewData] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('purchases');
     const [categoryDetails, setCategoryDetails] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [totalEmails, setTotalEmails] = useState(0);
+    const [totalStorage, setTotalStorage] = useState(0);
 
-    const COLORS = ['#2563eb', '#16a34a', '#eab308', '#dc2626', '#9333ea', '#0891b2', '#4f46e5', '#db2777', '#78716c'];
+    // สีที่ดูทันสมัยและสบายตา
+    const COLORS = ['#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#6366f1', '#ec4899', '#78716c'];
 
     const categoryMapping = {
         'purchases': '1',
@@ -23,6 +28,18 @@ const EmailDashboard = () => {
         'spam': '9',
     };
 
+    const categoryIcons = {
+        'purchases': '🛍️',
+        'newsletters': '📰',
+        'updates': '🔄',
+        'work': '💼',
+        'promotions': '🎯',
+        'social': '👥',
+        'personal': '📧',
+        'forums': '💬',
+        'spam': '⚠️',
+    };
+
     useEffect(() => {
         fetchOverviewData();
     }, []);
@@ -34,17 +51,27 @@ const EmailDashboard = () => {
     }, [selectedCategory]);
 
     const fetchOverviewData = async () => {
+        setLoading(true);
+        setError(null);
         try {
-            const response = await fetch('https://databaseproject-production-6f70.up.railway.app/api/data/analytics/overview');
+            const response = await fetch('/api/data/analytics');
             const data = await response.json();
             if (data.success) {
                 setOverviewData(data.data);
+                calculateTotals(data.data);
             }
-            setLoading(false);
         } catch (error) {
-            console.error('Error fetching overview data:', error);
+            setError('Failed to fetch overview data. Please try again later.');
+        } finally {
             setLoading(false);
         }
+    };
+
+    const calculateTotals = (data) => {
+        const emails = data.reduce((acc, curr) => acc + curr.emailCount, 0);
+        const storage = data.reduce((acc, curr) => acc + parseInt(curr.totalSize || 0), 0);
+        setTotalEmails(emails);
+        setTotalStorage(storage);
     };
 
     const fetchCategoryDetails = async (categoryName) => {
@@ -52,7 +79,7 @@ const EmailDashboard = () => {
         if (!categoryId) return;
 
         try {
-            const response = await fetch(`https://databaseproject-production-6f70.up.railway.app/api/data/analytics/category/${categoryId}`);
+            const response = await fetch(`/api/data/analytics/${categoryId}`);
             const data = await response.json();
             if (data.success) {
                 setCategoryDetails(data.data);
@@ -62,11 +89,10 @@ const EmailDashboard = () => {
         }
     };
 
-    // Custom tooltip for better data display
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-white p-4 border rounded shadow-lg">
+                <div className="bg-white p-4 border rounded-lg shadow-lg">
                     <p className="font-semibold text-gray-800">{label}</p>
                     <p className="text-blue-600">
                         Emails: {payload[0].value.toLocaleString()}
@@ -77,26 +103,44 @@ const EmailDashboard = () => {
         return null;
     };
 
+    const sortTimeData = (data) => {
+        if (!data) return [];
+        return [...data].sort((a, b) => {
+            const dateA = new Date(a.month + " 1, 2024");
+            const dateB = new Date(b.month + " 1, 2024");
+            return dateB - dateA;
+        });
+    };
+
     const formatBytes = (bytes) => {
+        if (!bytes || isNaN(bytes)) return '0 Bytes';
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        if (bytes === 0) return '0 Byte';
         const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
         return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
     };
 
     const prepareStorageData = (data) => {
-        return data.map(item => ({
-            ...item,
-            formattedSize: formatBytes(parseInt(item.totalSize)),
-            percentage: ((parseInt(item.totalSize) / data.reduce((acc, curr) => acc + parseInt(curr.totalSize), 0)) * 100).toFixed(1)
-        }));
+        if (!Array.isArray(data) || data.length === 0) return [];
+
+        try {
+            const totalSize = data.reduce((acc, curr) => acc + parseInt(curr.totalSize || 0), 0);
+            return data.map(item => ({
+                categoryName: item.categoryName || 'Unknown',
+                value: parseInt(item.totalSize || 0),
+                formattedSize: formatBytes(parseInt(item.totalSize || 0)),
+                percentage: totalSize > 0 ? ((parseInt(item.totalSize || 0) / totalSize) * 100).toFixed(1) : '0'
+            }));
+        } catch (error) {
+            console.error('Error preparing storage data:', error);
+            return [];
+        }
     };
 
     const StorageTooltip = ({ active, payload }) => {
-        if (active && payload && payload.length) {
+        if (active && payload && payload.length && payload[0].payload) {
             const data = payload[0].payload;
             return (
-                <div className="bg-white p-3 border rounded shadow-lg">
+                <div className="bg-white p-3 border rounded-lg shadow-lg">
                     <p className="font-semibold text-gray-800">{data.categoryName}</p>
                     <p className="text-sm text-gray-600">Size: {data.formattedSize}</p>
                     <p className="text-sm text-blue-600">{data.percentage}% of total</p>
@@ -106,9 +150,11 @@ const EmailDashboard = () => {
         return null;
     };
 
-    const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, value, index, payload }) => {
+    const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+        if (percent < 0.05) return null;
+
         const RADIAN = Math.PI / 180;
-        const radius = 25 + innerRadius + (outerRadius - innerRadius);
+        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
         const x = cx + radius * Math.cos(-midAngle * RADIAN);
         const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -116,96 +162,159 @@ const EmailDashboard = () => {
             <text
                 x={x}
                 y={y}
-                fill="#374151"
-                textAnchor={x > cx ? 'start' : 'end'}
+                fill="#ffffff"
+                textAnchor="middle"
                 dominantBaseline="central"
-                className="text-xs"
+                className="text-xs font-medium"
             >
-                {payload.categoryName} ({payload.percentage}%)
+                {`${(percent * 100).toFixed(1)}%`}
             </text>
         );
     };
 
-
     return (
-        <div className="max-w-7xl mx-auto p-6 bg-gray-50">
+        <div className="min-h-screen bg-gray-50 p-6">
+            {/* Header Section */}
             <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2 text-gray-800">All Email Analytics Dashboard</h1>
-                <div className="flex items-center space-x-2">
-                    <label className="text-sm font-medium text-gray-600">Category:</label>
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-800">Email Analytics Dashboard</h1>
+                        <p className="text-gray-600 mt-2">Comprehensive overview of your email categories and usage</p>
+                    </div>
+                    <button
+                        onClick={fetchOverviewData}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                        <RefreshCcw className="w-4 h-4" />
+                        Refresh Data
+                    </button>
+                </div>
+
+                {/* Stats Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                        <CardContent className="flex items-center p-6">
+                            <Mail className="w-12 h-12 mr-4" />
+                            <div>
+                                <p className="text-lg font-medium opacity-90">Total Emails</p>
+                                <p className="text-2xl font-bold">{totalEmails.toLocaleString()}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+                        <CardContent className="flex items-center p-6">
+                            <HardDrive className="w-12 h-12 mr-4" />
+                            <div>
+                                <p className="text-lg font-medium opacity-90">Total Storage</p>
+                                <p className="text-2xl font-bold">{formatBytes(totalStorage)}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                        <CardContent className="flex items-center p-6">
+                            <Users className="w-12 h-12 mr-4" />
+                            <div>
+                                <p className="text-lg font-medium opacity-90">Categories</p>
+                                <p className="text-2xl font-bold">{Object.keys(categoryMapping).length}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Category Selector */}
+                <div className="flex items-center space-x-4 mb-6">
+                    <label className="text-sm font-medium text-gray-600">Select Category:</label>
                     <select
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="border rounded-md px-3 py-2 bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="border rounded-lg px-4 py-2 bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                         value={selectedCategory}
                     >
                         {Object.keys(categoryMapping).map((category) => (
                             <option key={category} value={category}>
-                                {category.charAt(0).toUpperCase() + category.slice(1)}
+                                {categoryIcons[category]} {category.charAt(0).toUpperCase() + category.slice(1)}
                             </option>
                         ))}
                     </select>
                 </div>
             </div>
 
+            {error && (
+                <Alert variant="destructive" className="mb-6">
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
+
+            {/* Main Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 <Card className="shadow-lg">
-                    <CardHeader className="border-b bg-gray-50">
-                        <CardTitle className="text-xl text-gray-800">Email Distribution by Category</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        <div className="h-96">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={overviewData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                    <XAxis
-                                        dataKey="categoryName"
-                                        tick={{ fill: '#4b5563' }}
-                                        axisLine={{ stroke: '#9ca3af' }}
-                                    />
-                                    <YAxis
-                                        tick={{ fill: '#4b5563' }}
-                                        axisLine={{ stroke: '#9ca3af' }}
-                                    />
-                                    <Tooltip content={<CustomTooltip />} />
-                                    <Bar
-                                        dataKey="emailCount"
-                                        fill="#2563eb"
-                                        radius={[4, 4, 0, 0]}
-                                    />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="shadow-lg">
-                    <CardHeader className="border-b bg-gray-50">
-                        <CardTitle className="text-xl text-gray-800">Storage Distribution</CardTitle>
+                    <CardHeader className="border-b bg-white">
+                        <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
+                            <Mail className="w-5 h-5" />
+                            Email Distribution by Category
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6">
                         <div className="h-96">
                             {loading ? (
                                 <div className="flex items-center justify-center h-full">
-                                    <div className="text-gray-600">Loading data...</div>
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                                 </div>
-                            ) : overviewData.length === 0 ? (
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={overviewData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                        <XAxis
+                                            dataKey="categoryName"
+                                            tick={{ fill: '#4b5563' }}
+                                            axisLine={{ stroke: '#9ca3af' }}
+                                        />
+                                        <YAxis
+                                            tick={{ fill: '#4b5563' }}
+                                            axisLine={{ stroke: '#9ca3af' }}
+                                        />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Bar
+                                            dataKey="emailCount"
+                                            fill="#0ea5e9"
+                                            radius={[4, 4, 0, 0]}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-lg">
+                    <CardHeader className="border-b bg-white">
+                        <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
+                            <HardDrive className="w-5 h-5" />
+                            Storage Distribution
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <div className="h-96">
+                            {loading ? (
                                 <div className="flex items-center justify-center h-full">
-                                    <div className="text-gray-600">No data available</div>
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                                 </div>
                             ) : (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
                                             data={prepareStorageData(overviewData)}
-                                            dataKey="totalSize"
+                                            dataKey="value"
                                             nameKey="categoryName"
                                             cx="50%"
                                             cy="50%"
+                                            innerRadius={60}
                                             outerRadius={120}
-                                            labelLine={true}
                                             label={renderCustomizedLabel}
+                                            labelLine={false}
                                         >
-                                            {overviewData.map((entry, index) => (
+                                            {prepareStorageData(overviewData).map((entry, index) => (
                                                 <Cell
                                                     key={`cell-${index}`}
                                                     fill={COLORS[index % COLORS.length]}
@@ -216,9 +325,9 @@ const EmailDashboard = () => {
                                         </Pie>
                                         <Tooltip content={<StorageTooltip />} />
                                         <Legend
-                                            layout="horizontal"
-                                            verticalAlign="bottom"
-                                            align="center"
+                                            layout="vertical"
+                                            align="right"
+                                            verticalAlign="middle"
                                             formatter={(value, entry) => {
                                                 const { payload } = entry;
                                                 return `${payload.categoryName} (${payload.formattedSize})`;
@@ -234,78 +343,146 @@ const EmailDashboard = () => {
 
             {categoryDetails && (
                 <Card className="shadow-lg mt-8">
-                    <CardHeader className="border-b bg-gray-50">
-                        <CardTitle className="text-xl text-gray-800">
-                            Category Details: {selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}
+                    <CardHeader className="border-b bg-white">
+                        <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5" />
+                            Category Details: {categoryIcons[selectedCategory]} {selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="h-[500px]"> {/* Increased height */}
-                                <h4 className="text-lg font-semibold mb-4 text-gray-700">Top Senders</h4>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={categoryDetails.senderAnalysis}
-                                        layout="vertical" // Changed to vertical layout
-                                        margin={{ top: 10, right: 30, left: 100, bottom: 5 }} // Adjusted margins
-                                    >
-                                        <CartesianGrid
-                                            strokeDasharray="3 3"
-                                            stroke="#e5e7eb"
-                                            horizontal={true}
-                                        />
-                                        <XAxis
-                                            type="number"
-                                            tick={{ fill: '#4b5563', fontSize: 12 }}
-                                            axisLine={{ stroke: '#9ca3af' }}
-                                        />
-                                        <YAxis
-                                            type="category"
-                                            dataKey="senderEmail"
-                                            tick={{ fill: '#4b5563', fontSize: 12 }}
-                                            width={90} // Control the width of the labels
-                                            axisLine={{ stroke: '#9ca3af' }}
-                                        />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Bar
-                                            dataKey="emailCount"
-                                            fill="#16a34a"
-                                            radius={[0, 4, 4, 0]} // Rounded corners on right side
-                                            barSize={20} // Control bar thickness
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                            {/* Top Senders Chart */}
+                            <div className="bg-white p-6 rounded-lg shadow-sm">
+                                <h4 className="text-lg font-semibold mb-4 text-gray-700 flex items-center gap-2">
+                                    <Users className="w-5 h-5" />
+                                    Top 10 Senders
+                                </h4>
+                                <div className="h-[500px]">
+                                    {loading ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                        </div>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart
+                                                data={categoryDetails.senderAnalysis}
+                                                layout="vertical"
+                                                margin={{ top: 10, right: 30, left: 100, bottom: 5 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={true} />
+                                                <XAxis
+                                                    type="number"
+                                                    tick={{ fill: '#4b5563', fontSize: 12 }}
+                                                    axisLine={{ stroke: '#9ca3af' }}
+                                                />
+                                                <YAxis
+                                                    type="category"
+                                                    dataKey="senderEmail"
+                                                    tick={{ fill: '#4b5563', fontSize: 12 }}
+                                                    width={90}
+                                                    axisLine={{ stroke: '#9ca3af' }}
+                                                />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar
+                                                    dataKey="emailCount"
+                                                    fill="#22c55e"
+                                                    radius={[0, 4, 4, 0]}
+                                                    barSize={20}
+                                                />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="h-80">
-                                <h4 className="text-lg font-semibold mb-4 text-gray-700">Time Trend</h4>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={categoryDetails.timeAnalysis}
-                                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                        <XAxis
-                                            dataKey="month"
-                                            tick={{ fill: '#4b5563', fontSize: 12 }}
-                                            angle={-45}
-                                            textAnchor="end"
-                                            height={60}
-                                        />
-                                        <YAxis tick={{ fill: '#4b5563' }} />
-                                        <Tooltip content={<CustomTooltip />} />
-                                        <Bar
-                                            dataKey="emailCount"
-                                            fill="#eab308"
-                                            radius={[4, 4, 0, 0]}
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                            {/* Time Trend Chart */}
+                            <div className="bg-white p-6 rounded-lg shadow-sm">
+                                <h4 className="text-lg font-semibold mb-4 text-gray-700 flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5" />
+                                    Time Trend Analysis
+                                </h4>
+                                <div className="h-[500px]">
+                                    {loading ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                        </div>
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart
+                                                data={sortTimeData(categoryDetails.timeAnalysis)}
+                                                margin={{ top: 20, right: 30, left: 20, bottom: 50 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                                <XAxis
+                                                    dataKey="month"
+                                                    tick={{ fill: '#4b5563', fontSize: 12 }}
+                                                    angle={-45}
+                                                    textAnchor="end"
+                                                    height={60}
+                                                />
+                                                <YAxis
+                                                    tick={{ fill: '#4b5563' }}
+                                                    label={{
+                                                        value: 'Email Count',
+                                                        angle: -90,
+                                                        position: 'insideLeft',
+                                                        style: { fill: '#4b5563' }
+                                                    }}
+                                                />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Line
+                                                    type="monotone"
+                                                    dataKey="emailCount"
+                                                    stroke="#f59e0b"
+                                                    strokeWidth={2}
+                                                    dot={{ fill: '#f59e0b', r: 4 }}
+                                                    activeDot={{ r: 6 }}
+                                                />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Category Stats Cards */}
+                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                                    <CardContent className="p-6">
+                                        <h4 className="text-lg font-medium opacity-90">Total Emails in Category</h4>
+                                        <p className="text-2xl font-bold mt-2">
+                                            {categoryDetails.timeAnalysis?.reduce((acc, curr) => acc + curr.emailCount, 0).toLocaleString()}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+                                    <CardContent className="p-6">
+                                        <h4 className="text-lg font-medium opacity-90">Average Monthly Emails</h4>
+                                        <p className="text-2xl font-bold mt-2">
+                                            {Math.round(categoryDetails.timeAnalysis?.reduce((acc, curr) => acc + curr.emailCount, 0) /
+                                                (categoryDetails.timeAnalysis?.length || 1)).toLocaleString()}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+                                    <CardContent className="p-6">
+                                        <h4 className="text-lg font-medium opacity-90">Unique Senders</h4>
+                                        <p className="text-2xl font-bold mt-2">
+                                            {categoryDetails.senderAnalysis?.length.toLocaleString()}
+                                        </p>
+                                    </CardContent>
+                                </Card>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
             )}
+
+            {/* Footer */}
+            <div className="mt-8 text-center text-gray-600 text-sm">
+                <p>Last updated: {new Date().toLocaleString()}</p>
+            </div>
         </div>
     );
 };

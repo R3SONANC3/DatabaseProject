@@ -3,6 +3,8 @@ import mysql.connector
 from mysql.connector import Error
 import re
 import random
+from typing import List, Dict, Any
+from datetime import datetime
 
 # Define realistic probabilities for categories and statuses
 category_weights = {
@@ -17,14 +19,21 @@ category_weights = {
     'spam': 0.05
 }
 
-# Function to connect to MySQL database
 def connect_to_db():
     try:
         connection = mysql.connector.connect(
-            host='localhost',
-            user='root',
+            host='databasepj.cps0aq0y2604.ap-southeast-2.rds.amazonaws.com',
+            user='admin',
             database='databasepj',
-            password='1234567'
+            password='12345678',
+            port='3306',
+            # เพิ่ม configuration สำหรับ bulk insert
+            allow_local_infile=True,
+            charset='utf8mb4',
+            use_pure=True,
+            # เพิ่ม buffer sizes
+            connection_timeout=300,
+            buffered=True
         )
         if connection.is_connected():
             print("Connected to MySQL database")
@@ -33,102 +42,107 @@ def connect_to_db():
         print(f"Error connecting to MySQL: {e}")
         return None
 
-# Function to select a random category based on weights
-def select_random_category():
-    categories = list(category_weights.keys())
-    probabilities = list(category_weights.values())
-    return random.choices(categories, probabilities)[0]
-
-
-# Function to insert data into Categories and Status tables
-def insert_into_categories_and_status(cursor):
-    categories = ['purchases', 'newsletters', 'updates', 'work', 'promotions', 'social', 'personal', 'forums', 'spam']
-
-    # Insert Categories
-    for category in categories:
-        cursor.execute("INSERT IGNORE INTO Categories (categoryName) VALUES (%s)", (category,))
-
-
-# Function to get the ID for Categories and Status based on name
-def get_id_by_name(cursor, table_name, column_name, value):
-    id_column = 'categoryID' if table_name == 'Categories' else 'statusID'
+def prepare_categories(cursor):
+    # Insert all categories at once
+    categories = [(cat,) for cat in category_weights.keys()]
+    cursor.executemany(
+        "INSERT IGNORE INTO Categories (categoryName) VALUES (%s)",
+        categories
+    )
     
-    cursor.execute(f"SELECT {id_column} FROM {table_name} WHERE {column_name} = %s", (value,))
-    result = cursor.fetchone()
+    # Get category mappings in one query
+    cursor.execute("SELECT categoryName, categoryID FROM Categories")
+    return {name: id for name, id in cursor.fetchall()}
+
+def process_dataframe(df: pd.DataFrame, category_mapping: Dict[str, int], batch_size: int = 1000) -> List[tuple]:
+    # Preprocess date column once
+    df['Date'] = df['Date'].apply(lambda x: re.sub(r'\s+\([A-Z]+\)', '', x))
+    df['Date'] = pd.to_datetime(df['Date'], format='%a %d %b %Y %H:%M:%S %z', errors='coerce')
     
-    # Debugging: Print the result to verify it's retrieving IDs correctly
-    print(f"Fetching {id_column} for {value}: {result}")
-    
-    return result[0] if result else None
+    records = []
+    max_email_length = 100
 
-# Function to insert data from CSV into Emails table
-def insert_data_from_csv(csv_file, connection):
-    cursor = connection.cursor()
-
-    # Insert categories and status (make sure these are present)
-    insert_into_categories_and_status(cursor)
-    connection.commit()  # Commit changes after inserting categories and status
-
-    # Read CSV file into a pandas DataFrame
-    df = pd.read_csv(csv_file)
-
-    total_rows = len(df)
-
-    # Preprocess the date column to remove timezone name and parse the date
-    df['Date'] = df['Date'].apply(lambda x: re.sub(r'\s+\([A-Z]+\)', '', x))  # Remove timezone name
-    df['Date'] = pd.to_datetime(df['Date'], format='%a %d %b %Y %H:%M:%S %z', errors='coerce')  # Parse date
-
-    # Define the maximum length allowed for recipientEmail
-    max_email_length = 100  # Adjust based on your database schema
-
-    # Loop through DataFrame rows and insert each record into Emails table
-    for index, row in df.iterrows():
-        # Randomly select an email category and status using weights
-        selected_category = select_random_category()
-
-        # Get emailCategoryID based on the category name
-        email_category_id = get_id_by_name(cursor, 'Categories', 'categoryName', selected_category)
-
-        # Truncate recipient email if it exceeds max_email_length
+    for _, row in df.iterrows():
+        category = random.choices(list(category_weights.keys()), 
+                                weights=list(category_weights.values()))[0]
+        category_id = category_mapping[category]
+        
         recipient_email = row['recipient'][:max_email_length] if isinstance(row['recipient'], str) else None
+        date_str = row['Date'].strftime('%Y-%m-%d %H:%M:%S') if pd.notna(row['Date']) else None
 
-        # Prepare the insert query
-        insert_query = """
-        INSERT INTO Emails (messageID, date, senderEmail, message, recipientEmail, size, CategoryID)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
-
-        # Execute the query
-        cursor.execute(insert_query, (
+        record = (
             row['Message_ID'],
-            row['Date'].strftime('%Y-%m-%d %H:%M:%S') if pd.notna(row['Date']) else None,
+            date_str,
             row['From'],
             row['Subject'],
-            recipient_email,  # Use truncated email
+            recipient_email,
             row['Size'],
-            email_category_id
-        ))
+            category_id
+        )
+        records.append(record)
 
-        # Print progress
-        print(f"Processed row {index + 1} of {total_rows}")
+    return records
 
-    # Commit the transaction
-    connection.commit()
-    cursor.close()
+def bulk_insert_records(cursor, records: List[tuple], batch_size: int = 1000):
+    insert_query = """
+    INSERT INTO Emails (messageID, date, senderEmail, message, recipientEmail, size, CategoryID)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+    
+    total_records = len(records)
+    for i in range(0, total_records, batch_size):
+        batch = records[i:i + batch_size]
+        cursor.executemany(insert_query, batch)
+        print(f"Inserted {min(i + batch_size, total_records)} of {total_records} records")
 
-
-# Main function
 def main():
-    csv_file = 'updated_data.csv'  # Replace with the path to your CSV file
+    csv_file = 'updated_data.csv'
+    batch_size = 1000  # ปรับขนาด batch ตามความเหมาะสม
 
-    # Connect to the database
     connection = connect_to_db()
+    if connection is None:
+        return
 
-    if connection is not None:
-        # Insert data from CSV
-        insert_data_from_csv(csv_file, connection)
-
-        # Close the connection
+    try:
+        # อ่าน CSV ทั้งไฟล์เข้า memory
+        print("Reading CSV file...")
+        df = pd.read_csv(csv_file)
+        
+        cursor = connection.cursor()
+        
+        # Set session variables for better performance
+        cursor.execute("SET foreign_key_checks = 0")
+        cursor.execute("SET unique_checks = 0")
+        cursor.execute("SET autocommit = 0")
+        
+        # เตรียม categories ทั้งหมดในครั้งเดียว
+        print("Preparing categories...")
+        category_mapping = prepare_categories(cursor)
+        connection.commit()
+        
+        # Process records in memory
+        print("Processing records...")
+        records = process_dataframe(df, category_mapping, batch_size)
+        
+        # Bulk insert with batching
+        print("Inserting records...")
+        bulk_insert_records(cursor, records, batch_size)
+        
+        # Commit changes
+        connection.commit()
+        
+        # Reset session variables
+        cursor.execute("SET foreign_key_checks = 1")
+        cursor.execute("SET unique_checks = 1")
+        cursor.execute("SET autocommit = 1")
+        
+        print("Data insertion completed successfully!")
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        connection.rollback()
+    finally:
+        cursor.close()
         connection.close()
 
 if __name__ == '__main__':

@@ -6,17 +6,23 @@ const allowedOrigins = [
     "http://localhost:3000",
     "https://field-ex.vercel.app",
     "http://localhost:5173",
-    "https://database-project-bice.vercel.app"
 ];
 
 const corsOptions = {
-    origin: ['https://database-project-bice.vercel.app'],
+    origin: function (origin, callback) {
+        if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 200, 
 };
 
-
+  
 
 const verifyUser = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];

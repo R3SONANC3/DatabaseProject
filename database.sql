@@ -2,7 +2,7 @@ CREATE TABLE Categories (
     categoryID INT AUTO_INCREMENT PRIMARY KEY,
     categoryName VARCHAR(255) UNIQUE,
     CONSTRAINT categoryNameUnique UNIQUE (categoryName)
-) AUTO_INCREMENT = 1;
+);
 
 
 
@@ -16,7 +16,7 @@ CREATE TABLE Emails (
     size INT NOT NULL,
     CategoryID INT,
     statusID INT,
-    FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID),
+    FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID)
 );
 
 CREATE TABLE users (

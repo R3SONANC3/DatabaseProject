@@ -52,6 +52,7 @@ async function getEmailsBySenderInCategory(categoryId) {
       WHERE e.CategoryID = ?
       GROUP BY e.senderEmail
       ORDER BY emailCount DESC
+      LIMIT 10
     `;
   return await executeQuery(sql, [categoryId]);
 }
@@ -166,7 +167,7 @@ router.get('/emailVolume', verifyUser, async (req, res) => {
   }
 });
 
-router.get('/analytics/overview', async (req, res) => {
+router.get('/analytics', async (req, res) => {
   try {
     const result = await getEmailsByCategory();
     res.json({
@@ -181,7 +182,7 @@ router.get('/analytics/overview', async (req, res) => {
   }
 });
 
-router.get('/analytics/category/:categoryId', async (req, res) => {
+router.get('/analytics/:categoryId', async (req, res) => {
   try {
     const { categoryId } = req.params;
     const emails = await getEmailsInCategory(categoryId);
@@ -191,7 +192,6 @@ router.get('/analytics/category/:categoryId', async (req, res) => {
     res.json({
       success: true,
       data: {
-        emails,
         senderAnalysis,
         timeAnalysis
       }
