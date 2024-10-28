@@ -1,24 +1,23 @@
-# Use official Node.js image (Alpine version for a smaller image)
+# Use the official Node.js image as a base
 FROM node:18-alpine
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy only package files first to leverage Docker cache for dependencies
+# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
-# Install dependencies (including production and development dependencies)
-RUN npm install --production=false
+# Install dependencies
+RUN npm install
 
-# Copy the rest of the application code
+# Copy the rest of the application code to the working directory
 COPY . .
 
-# Expose the application port
+# Build the TypeScript files if necessary (comment this out if not using TypeScript)
+# RUN npm run build
+
+# Expose the port on which your app will run
 EXPOSE 8000
 
-# Use a non-root user for better security (optional, but recommended)
-RUN adduser -D appuser
-USER appuser
-
-# Command to run the app in development mode
-CMD ["npm", "run", "dev"]
+# Command to start the application (change as needed)
+CMD ["npm", "start"]

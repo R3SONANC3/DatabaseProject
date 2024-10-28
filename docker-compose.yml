@@ -1,17 +1,27 @@
 version: '3.8'
+
 services:
   frontend:
     container_name: client
     build:
       context: ./client
+      dockerfile: Dockerfile  # Specify the Dockerfile if it's named differently
     ports:
       - "3000:3000"
     depends_on:
       - backend
+    networks:
+      - app-network  # Define a custom network for better isolation
 
   backend:
     container_name: server
     build:
       context: ./server
+      dockerfile: Dockerfile  # Specify the Dockerfile if it's named differently
     ports:
       - "8000:8000"
+    networks:
+      - app-network  # Ensure both services are on the same network
+
+networks:
+  app-network:  # Define a custom network for the application

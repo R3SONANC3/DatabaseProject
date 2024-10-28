@@ -1,23 +1,23 @@
-# ใช้ Node.js image สำหรับ frontend
-FROM node:18 as build
+# Use Node.js official image as the base image
+FROM node:18-alpine
 
-# สร้าง working directory
-WORKDIR /app
+# Set the working directory
+WORKDIR /usr/src/app
 
-# คัดลอก package.json และติดตั้ง dependencies
-COPY package.json ./
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install dependencies
 RUN npm install
 
-# คัดลอกไฟล์ทั้งหมดไปยัง container และ build
+# Copy the rest of the application code
 COPY . .
+
+# Build the TypeScript files (if necessary, but for development ts-node-dev is enough)
 RUN npm run build
 
-# ใช้ Nginx เป็น server สำหรับ static files
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+# Expose the port on which the app will run
+EXPOSE 3000
 
-# เปิด port สำหรับ frontend
-EXPOSE 80
-
-# รัน Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Command to start the app
+CMD ["npm", "run", "dev"]
