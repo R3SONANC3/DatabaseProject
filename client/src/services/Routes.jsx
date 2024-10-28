@@ -5,6 +5,7 @@ import NotFound from '../components/NotFound.jsx'; // Not Found component
 import Login from '../components/Login.jsx'; // Login component
 import Dashboard from '../components/Dashboard.jsx';
 import Profile from '../components/Profile.jsx';
+import EmailSearch from '../components/EmailSearch.jsx'
 
 const router = createBrowserRouter([
   {
@@ -25,6 +26,10 @@ const router = createBrowserRouter([
   {
     path: '*',
     element: <NotFound />, // Catch-all for 404
+  },
+  {
+    path: '/search',
+    element: <EmailSearch />
   },
 ]);
 

@@ -381,7 +381,6 @@ const EmailDashboard = () => {
           </CardContent>
         </Card>
       </div>
-      
       {/* Category Selector */}
       <div className="flex items-center space-x-4 mb-6">
         <label className="text-sm font-medium text-gray-600">
@@ -401,6 +400,7 @@ const EmailDashboard = () => {
         </select>
       </div>
 
+      {categoryDetails && (
         <Card className="shadow-lg mt-8">
           <CardHeader className="border-b bg-white">
             <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
@@ -554,6 +554,7 @@ const EmailDashboard = () => {
             </div>
           </CardContent>
         </Card>
+      )}
 
       {/* Footer */}
       <div className="mt-8 text-center text-gray-600 text-sm">

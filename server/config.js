@@ -10,7 +10,7 @@ const {
   DB_PORT
 } = process.env;
 
-const SQL_URL = `postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
+const SQL_URL = `mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
 
 let connector;
 

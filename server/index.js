@@ -5,6 +5,7 @@ const { corsOptions } = require('./middleware');
 const authRoutes = require('./routes/auth');
 const getData = require('./routes/data')
 const getUser = require('./routes/user')
+const emailRoutes = require('./routes/email');
 const morgan = require('morgan')
 
 const app = express();
@@ -21,6 +22,7 @@ const API_PORT = process.env.PORT || 8000;
 app.use('/api/auth', authRoutes); 
 app.use('/api/data', getData);
 app.use('/api/user', getUser)
+app.use('/api/email', emailRoutes);
 
 // Basic error handling middleware
 app.use((err, req, res, next) => {
@@ -32,7 +34,7 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize MySQL and start server
-app.listen(API_PORT, async () => {
+app.listen(API_PORT, '0.0.0.0' ,async () => {
   try {
     await initMySQL();
     console.log(`Server running on port ${API_PORT}`);

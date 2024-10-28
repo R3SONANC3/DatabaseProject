@@ -6,6 +6,7 @@ const allowedOrigins = [
     "http://localhost:3000",
     "https://field-ex.vercel.app",
     "http://localhost:5173",
+    "http://192.168.0.104:3000",
 ];
 
 const corsOptions = {
