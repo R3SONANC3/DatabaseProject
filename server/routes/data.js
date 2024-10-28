@@ -20,32 +20,11 @@ async function getEmailsByCategory() {
   return await executeQuery(sql, []);
 }
 
-async function getEmailsInCategory(categoryId) {
-  const sql = `
-      SELECT 
-        e.emailID,
-        e.messageID,
-        e.date,
-        e.senderEmail,
-        e.recipientEmail,
-        e.size,
-        c.categoryName
-      FROM Emails e
-      JOIN Categories c ON e.CategoryID = c.categoryID
-      WHERE c.categoryID = ?
-      ORDER BY e.date DESC
-    `;
-  return await executeQuery(sql, [categoryId]);
-}
-
 async function getEmailsBySenderInCategory(categoryId) {
   const sql = `
       SELECT 
         e.senderEmail,
-        COUNT(*) as emailCount,
-        SUM(e.size) as totalSize,
-        MIN(e.date) as firstEmail,
-        MAX(e.date) as lastEmail
+        COUNT(*) as emailCount
       FROM Emails e
       WHERE e.CategoryID = ?
       GROUP BY e.senderEmail
@@ -59,8 +38,7 @@ async function getEmailTimeAnalysis(categoryId) {
   const sql = `
       SELECT 
         DATE_FORMAT(date, '%Y-%m') as month,
-        COUNT(*) as emailCount,
-        SUM(size) as totalSize
+        COUNT(*) as emailCount
       FROM Emails
       WHERE CategoryID = ?
       GROUP BY month

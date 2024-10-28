@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { executeQuery } = require('../config');
 
-router.get('/', async (req, res) => {
+router.get('/category', async (req, res) => {
   try {
     const categories = await executeQuery('SELECT * FROM Categories');
     res.json({ success: true, categories });
@@ -136,6 +136,44 @@ router.get('/search', async (req, res) => {
       message: 'Failed to search emails.',
       error: error.message
     });
+  }
+});
+
+router.post('/insert', async (req, res) => {
+  const { messageId, senderEmail, recipientEmail, message, size, categoryID, date } = req.body;
+  console.log(req.body);
+  // Basic validation
+  if (!messageId || !senderEmail || !recipientEmail || !message || !size || !categoryID || !date) {
+      return res.status(400).json({
+          success: false,
+          message: 'All fields are required.'
+      });
+  }
+
+  try {
+      // Insert email into the database
+      const result = await executeQuery(
+          `INSERT INTO Emails (messageId, senderEmail, recipientEmail, message, size, CategoryID, date) 
+          VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+          [messageId, senderEmail, recipientEmail, message, size, categoryID, date]
+      );
+
+      if (result.affectedRows > 0) {
+          return res.json({
+              success: true,
+              message: 'Email added successfully.',
+              emailId: result.insertId, // Return the ID of the inserted email
+          });
+      } else {
+          throw new Error('Failed to add email');
+      }
+  } catch (error) {
+      console.error('Error adding email:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Failed to add email.',
+          error: error.message
+      });
   }
 });
 

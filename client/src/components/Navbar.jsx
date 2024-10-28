@@ -32,7 +32,6 @@ const Navbar = () => {
             <NavLink to="/" active={location.pathname === '/'}>Home</NavLink>
             {isAuthenticated() && (
               <>
-                <NavLink to="/dashboard" active={location.pathname === '/dashboard'}>Dashboard</NavLink>
                 <NavLink to="/search" active={location.pathname === '/search'}>Search</NavLink>
               </>
             )}
@@ -82,9 +81,6 @@ const Navbar = () => {
             </MobileNavLink>
             {isAuthenticated() && (
               <>
-                <MobileNavLink to="/dashboard" active={location.pathname === '/dashboard'} onClick={() => setIsMenuOpen(false)}>
-                  Dashboard
-                </MobileNavLink>
                 <MobileNavLink to="/search" active={location.pathname === '/search'} onClick={() => setIsMenuOpen(false)}>
                   Search
                 </MobileNavLink>

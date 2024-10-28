@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Mail, Inbox, Send, AlertCircle, RefreshCw } from 'lucide-react';
+import { Mail, Inbox, Send, AlertCircle, RefreshCw, Plus } from 'lucide-react';
 import axios from 'axios';
 import Navbar from './Navbar';
+import EmailCategoryForm from './EmailCategoryForm';
 
 const COLORS = ['#6366f1', '#22c55e', '#eab308', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b'];
 
@@ -23,6 +24,7 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [timeFilter, setTimeFilter] = useState('1m');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEmailFormOpen, setIsEmailFormOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -75,13 +77,13 @@ const Profile = () => {
     const volumeByCategory = data.reduce((acc, email) => {
       const sentEmails = parseInt(email.sentEmails, 10) || 0;
       const receivedEmails = parseInt(email.receivedEmails, 10) || 0;
-  
+
       acc.Sent = (acc.Sent || 0) + sentEmails;
       acc.Received = (acc.Received || 0) + receivedEmails;
-  
+
       return acc;
     }, {});
-  
+
     const processedData = [
       {
         name: 'Email Volume',
@@ -89,7 +91,7 @@ const Profile = () => {
         Sent: volumeByCategory.Sent || 0
       }
     ];
-  
+
     setVolumeData(processedData);
   };
 
@@ -137,7 +139,7 @@ const Profile = () => {
             {error}
           </div>
         )}
-        
+
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
@@ -147,16 +149,28 @@ const Profile = () => {
               Comprehensive overview of your email activity and trends
             </p>
           </div>
-          <button
-            onClick={fetchData}
-            disabled={isRefreshing}
-            className={`px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 flex items-center gap-2 shadow-md ${
-              isRefreshing ? 'opacity-75 cursor-not-allowed' : ''
-            }`}
-          >
-            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
-          </button>
+
+          <div className="flex gap-3">
+            <button
+              onClick={fetchData}
+              disabled={isRefreshing}
+              className={`px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 
+          transition-all duration-200 flex items-center gap-2 shadow-md 
+          ${isRefreshing ? 'opacity-75 cursor-not-allowed' : ''}`}
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+            </button>
+
+            <button
+              onClick={() => setIsEmailFormOpen(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 
+          transition-all duration-200 flex items-center gap-2 shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Email
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -244,8 +258,8 @@ const Profile = () => {
                     labelLine={{ stroke: '#6b7280', strokeWidth: 1 }}
                   >
                     {pieChartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
+                      <Cell
+                        key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
                         className="hover:opacity-80 transition-opacity duration-200"
                       />
@@ -263,8 +277,13 @@ const Profile = () => {
             </div>
           </div>
         </div>
+        <EmailCategoryForm
+          isOpen={isEmailFormOpen}
+          onClose={() => setIsEmailFormOpen(false)}
+        />
       </main>
     </div>
+
   );
 };
 
