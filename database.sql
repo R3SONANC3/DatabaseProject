@@ -15,7 +15,6 @@ CREATE TABLE Emails (
     recipientEmail VARCHAR(255) NOT NULL,
     size INT NOT NULL,
     CategoryID INT,
-    statusID INT,
     FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID)
 );
 

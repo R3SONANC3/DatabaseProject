@@ -43,7 +43,7 @@ const Login = () => {
           confirmButtonText: 'OK',
         });
         sessionStorage.setItem('token', response.data.token);
-        navigate('/');
+        navigate('/profile');
       }
     } catch (error) {
       if (error.response && error.response.status === 401) {

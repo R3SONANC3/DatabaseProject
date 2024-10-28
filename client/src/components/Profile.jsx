@@ -3,12 +3,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Mail, Inbox, Send, Trash, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import Navbar from './Navbar';
-import Overview from './Overview'
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#a4de6c', '#d0ed57', '#83a6ed', '#8dd1e1', '#ff7c43'];
 
 const TIME_FILTERS = [
-  { label: 'Last 7 Days', value: '7d' },
   { label: 'Last Month', value: '1m' },
   { label: 'Last 3 Months', value: '3m' },
   { label: 'Last 6 Months', value: '6m' },
@@ -19,12 +17,12 @@ const TIME_FILTERS = [
 ];
 
 
-const Home = () => {
+const Profile = () => {
   const [emailData, setEmailData] = useState([]);
   const [volumeData, setVolumeData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [timeFilter, setTimeFilter] = useState('7d');
+  const [timeFilter, setTimeFilter] = useState('1m');
 
   useEffect(() => {
     fetchData();
@@ -225,4 +223,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Profile;

@@ -26,7 +26,9 @@ const Navbar = () => {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
               <NavLink to="/" active={location.pathname === '/'}>Home</NavLink>
-              <NavLink to="/dashboard" active={location.pathname === '/dashboard'}>Dashboard</NavLink>
+              {isAuthenticated() && (
+                <NavLink to="/dashboard" active={location.pathname === '/dashboard'}>Dashboard</NavLink>
+              )}
               {isAuthenticated() ? (
                 <>
                   <NavLink to="/profile" active={location.pathname === '/profile'}>Profile</NavLink>
@@ -43,7 +45,7 @@ const Navbar = () => {
             <button
               onClick={toggleMenu}
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-              aria-expanded="false"
+              aria-expanded={isMenuOpen}
             >
               <span className="sr-only">Open main menu</span>
               {isMenuOpen ? (
@@ -64,7 +66,9 @@ const Navbar = () => {
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <MobileNavLink to="/" active={location.pathname === '/'} onClick={() => setIsMenuOpen(false)}>Home</MobileNavLink>
-            <MobileNavLink to="/dashboard" active={location.pathname === '/dashboard'} onClick={() => setIsMenuOpen(false)}>Dashboard</MobileNavLink>
+            {isAuthenticated() && (
+              <MobileNavLink to="/dashboard" active={location.pathname === '/dashboard'} onClick={() => setIsMenuOpen(false)}>Dashboard</MobileNavLink>
+            )}
             {isAuthenticated() ? (
               <>
                 <MobileNavLink to="/profile" active={location.pathname === '/profile'} onClick={() => setIsMenuOpen(false)}>Profile</MobileNavLink>

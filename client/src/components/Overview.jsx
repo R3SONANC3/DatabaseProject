@@ -173,7 +173,7 @@ const EmailDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen bg-gray-100 p-6">
             {/* Header Section */}
             <div className="mb-8">
                 <div className="flex justify-between items-center mb-6">

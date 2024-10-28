@@ -3,8 +3,6 @@ const { getConnector, executeQuery } = require('../config');
 const { verifyUser } = require('../middleware');
 const router = express.Router();
 const {
-  formatDateToMySQLDateTime,
-  validateTimeFilter,
   getStartDate
 } = require('../services/filterDate');
 
